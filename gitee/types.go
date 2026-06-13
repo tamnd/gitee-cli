@@ -1,6 +1,10 @@
 package gitee
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+	"strings"
+)
 
 // ─── Exported record types ────────────────────────────────────────────────────
 
@@ -62,8 +66,29 @@ type wireRepo struct {
 	Owner           wireOwner    `json:"owner"`
 }
 
+// wireLicense can appear as either an object {"spdx_id":"MIT"} or a bare
+// string "MIT" depending on which Gitee endpoint returns the repo.
 type wireLicense struct {
-	SPDXID string `json:"spdx_id"`
+	SPDXID string
+}
+
+func (l *wireLicense) UnmarshalJSON(b []byte) error {
+	if len(b) == 0 || string(b) == "null" {
+		return nil
+	}
+	// bare string form
+	if b[0] == '"' {
+		return json.Unmarshal(b, &l.SPDXID)
+	}
+	// object form
+	var obj struct {
+		SPDXID string `json:"spdx_id"`
+	}
+	if err := json.Unmarshal(b, &obj); err != nil {
+		return err
+	}
+	l.SPDXID = obj.SPDXID
+	return nil
 }
 
 type wireOwner struct {
@@ -95,14 +120,14 @@ type wireRelease struct {
 	Author     wireOwner `json:"author"`
 }
 
-type searchResp struct {
-	TotalCount int        `json:"total_count"`
-	Items      []wireRepo `json:"items"`
-}
-
 // ─── Conversion helpers ───────────────────────────────────────────────────────
 
 func wireRepoToRepo(wr wireRepo, rank int) Repo {
+	// The API html_url includes a trailing .git; strip it for the web URL.
+	webURL := strings.TrimSuffix(wr.HTMLURL, ".git")
+	if webURL == "" && wr.FullName != "" {
+		webURL = "https://gitee.com/" + wr.FullName
+	}
 	return Repo{
 		Rank:        rank,
 		FullName:    wr.FullName,
@@ -111,7 +136,7 @@ func wireRepoToRepo(wr wireRepo, rank int) Repo {
 		Stars:       wr.StargazersCount,
 		Forks:       wr.ForksCount,
 		UpdatedAt:   wr.UpdatedAt,
-		URL:         wr.HTMLURL,
+		URL:         webURL,
 	}
 }
 

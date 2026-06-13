@@ -151,6 +151,7 @@ func (c *Client) getJSON(ctx context.Context, rawURL string, v any) error {
 // ─── API methods ─────────────────────────────────────────────────────────────
 
 // SearchRepos searches Gitee repositories. sort: "stars", "forks", "updated".
+// The Gitee search endpoint returns a plain JSON array (not a wrapper object).
 func (c *Client) SearchRepos(ctx context.Context, query, lang, sort string, limit int) ([]Repo, error) {
 	if limit <= 0 {
 		limit = 20
@@ -183,17 +184,17 @@ func (c *Client) SearchRepos(ctx context.Context, query, lang, sort string, limi
 		params.Set("per_page", strconv.Itoa(pageSize))
 
 		rawURL := c.cfg.BaseURL + "/search/repositories?" + params.Encode()
-		var resp searchResp
-		if err := c.getJSON(ctx, rawURL, &resp); err != nil {
+		var repos []wireRepo
+		if err := c.getJSON(ctx, rawURL, &repos); err != nil {
 			return out, err
 		}
-		for _, wr := range resp.Items {
+		for _, wr := range repos {
 			out = append(out, wireRepoToRepo(wr, len(out)+1))
 			if len(out) >= limit {
 				return out, nil
 			}
 		}
-		if len(resp.Items) == 0 {
+		if len(repos) == 0 {
 			break
 		}
 		page++

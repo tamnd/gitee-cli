@@ -84,22 +84,19 @@ func TestGetNullReturnsNotFound(t *testing.T) {
 }
 
 func TestSearchRepos(t *testing.T) {
-	resp := searchResp{
-		TotalCount: 2,
-		Items: []wireRepo{
-			{FullName: "foo/bar", StargazersCount: 100, HTMLURL: "https://gitee.com/foo/bar"},
-			{FullName: "baz/qux", StargazersCount: 50, HTMLURL: "https://gitee.com/baz/qux"},
-		},
+	items := []wireRepo{
+		{FullName: "foo/bar", StargazersCount: 100, HTMLURL: "https://gitee.com/foo/bar.git"},
+		{FullName: "baz/qux", StargazersCount: 50, HTMLURL: "https://gitee.com/baz/qux.git"},
 	}
 	calls := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls++
 		w.Header().Set("Content-Type", "application/json")
 		if calls > 1 {
-			_ = json.NewEncoder(w).Encode(searchResp{})
+			_ = json.NewEncoder(w).Encode([]wireRepo{})
 			return
 		}
-		_ = json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(items)
 	}))
 	defer srv.Close()
 
@@ -126,7 +123,7 @@ func TestGetRepo(t *testing.T) {
 	wr := wireRepo{
 		FullName:        "gitee/gitee",
 		StargazersCount: 999,
-		HTMLURL:         "https://gitee.com/gitee/gitee",
+		HTMLURL:         "https://gitee.com/gitee/gitee.git",
 		Language:        "Ruby",
 	}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -144,7 +141,7 @@ func TestGetRepo(t *testing.T) {
 		t.Errorf("full_name = %q", repo.FullName)
 	}
 	if repo.URL != "https://gitee.com/gitee/gitee" {
-		t.Errorf("url = %q", repo.URL)
+		t.Errorf("url = %q, want https://gitee.com/gitee/gitee", repo.URL)
 	}
 	if repo.Stars != 999 {
 		t.Errorf("stars = %d", repo.Stars)
