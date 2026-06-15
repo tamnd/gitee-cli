@@ -83,108 +83,12 @@ func TestGetNullReturnsNotFound(t *testing.T) {
 	}
 }
 
-func TestSearchRepos(t *testing.T) {
-	items := []wireRepo{
-		{FullName: "foo/bar", StargazersCount: 100, HTMLURL: "https://gitee.com/foo/bar.git"},
-		{FullName: "baz/qux", StargazersCount: 50, HTMLURL: "https://gitee.com/baz/qux.git"},
-	}
-	calls := 0
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		calls++
-		w.Header().Set("Content-Type", "application/json")
-		if calls > 1 {
-			_ = json.NewEncoder(w).Encode([]wireRepo{})
-			return
-		}
-		_ = json.NewEncoder(w).Encode(items)
-	}))
-	defer srv.Close()
-
-	c := newTestClient(srv.URL)
-	repos, err := c.SearchRepos(context.Background(), "test", "", "stars", 10)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(repos) != 2 {
-		t.Fatalf("got %d repos, want 2", len(repos))
-	}
-	if repos[0].FullName != "foo/bar" {
-		t.Errorf("first repo = %q, want %q", repos[0].FullName, "foo/bar")
-	}
-	if repos[0].Stars != 100 {
-		t.Errorf("stars = %d, want 100", repos[0].Stars)
-	}
-	if repos[0].Rank != 1 {
-		t.Errorf("rank = %d, want 1", repos[0].Rank)
-	}
-}
-
-func TestGetRepo(t *testing.T) {
-	wr := wireRepo{
-		FullName:        "gitee/gitee",
-		StargazersCount: 999,
-		HTMLURL:         "https://gitee.com/gitee/gitee.git",
-		Language:        "Ruby",
-	}
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(wr)
-	}))
-	defer srv.Close()
-
-	c := newTestClient(srv.URL)
-	repo, err := c.GetRepo(context.Background(), "gitee", "gitee")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if repo.FullName != "gitee/gitee" {
-		t.Errorf("full_name = %q", repo.FullName)
-	}
-	if repo.URL != "https://gitee.com/gitee/gitee" {
-		t.Errorf("url = %q, want https://gitee.com/gitee/gitee", repo.URL)
-	}
-	if repo.Stars != 999 {
-		t.Errorf("stars = %d", repo.Stars)
-	}
-}
-
-func TestTrendingRepos(t *testing.T) {
-	repos := []wireRepo{
-		{FullName: "a/b", StargazersCount: 200, HTMLURL: "https://gitee.com/a/b"},
-		{FullName: "c/d", StargazersCount: 100, HTMLURL: "https://gitee.com/c/d"},
-	}
-	calls := 0
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		calls++
-		w.Header().Set("Content-Type", "application/json")
-		if calls > 1 {
-			_ = json.NewEncoder(w).Encode([]wireRepo{})
-			return
-		}
-		_ = json.NewEncoder(w).Encode(repos)
-	}))
-	defer srv.Close()
-
-	c := newTestClient(srv.URL)
-	out, err := c.TrendingRepos(context.Background(), "", "stars", 5)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(out) != 2 {
-		t.Fatalf("got %d repos, want 2", len(out))
-	}
-	if out[0].Rank != 1 {
-		t.Errorf("rank = %d, want 1", out[0].Rank)
-	}
-	if out[1].Rank != 2 {
-		t.Errorf("rank = %d, want 2", out[1].Rank)
-	}
-}
-
 func TestGetUser(t *testing.T) {
 	wu := wireUser{
+		ID:          42,
 		Login:       "testuser",
 		Name:        "Test User",
+		HTMLURL:     "https://gitee.com/testuser",
 		Followers:   42,
 		Following:   10,
 		PublicRepos: 7,
@@ -207,15 +111,46 @@ func TestGetUser(t *testing.T) {
 	if user.Followers != 42 {
 		t.Errorf("followers = %d", user.Followers)
 	}
-	if user.URL != "https://gitee.com/testuser" {
-		t.Errorf("url = %q", user.URL)
+	if user.HTMLURL != "https://gitee.com/testuser" {
+		t.Errorf("html_url = %q", user.HTMLURL)
 	}
 }
 
-func TestUserRepos(t *testing.T) {
-	repos := []wireRepo{
-		{FullName: "testuser/alpha", StargazersCount: 10, HTMLURL: "https://gitee.com/testuser/alpha"},
-		{FullName: "testuser/beta", StargazersCount: 5, HTMLURL: "https://gitee.com/testuser/beta"},
+func TestGetRepo(t *testing.T) {
+	wr := wireRepo{
+		ID:              1,
+		FullName:        "gitee/gitee",
+		Name:            "gitee",
+		StargazersCount: 999,
+		HTMLURL:         "https://gitee.com/gitee/gitee.git",
+		Language:        "Ruby",
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(wr)
+	}))
+	defer srv.Close()
+
+	c := newTestClient(srv.URL)
+	repo, err := c.GetRepo(context.Background(), "gitee", "gitee")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if repo.FullName != "gitee/gitee" {
+		t.Errorf("full_name = %q", repo.FullName)
+	}
+	if repo.URL != "https://gitee.com/gitee/gitee" {
+		t.Errorf("url = %q, want https://gitee.com/gitee/gitee", repo.URL)
+	}
+	if repo.StargazersCount != 999 {
+		t.Errorf("stars = %d", repo.StargazersCount)
+	}
+}
+
+func TestSearchRepos(t *testing.T) {
+	items := []wireRepo{
+		{ID: 1, FullName: "foo/bar", StargazersCount: 100, HTMLURL: "https://gitee.com/foo/bar.git"},
+		{ID: 2, FullName: "baz/qux", StargazersCount: 50, HTMLURL: "https://gitee.com/baz/qux.git"},
 	}
 	calls := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -225,27 +160,30 @@ func TestUserRepos(t *testing.T) {
 			_ = json.NewEncoder(w).Encode([]wireRepo{})
 			return
 		}
-		_ = json.NewEncoder(w).Encode(repos)
+		_ = json.NewEncoder(w).Encode(items)
 	}))
 	defer srv.Close()
 
 	c := newTestClient(srv.URL)
-	out, err := c.UserRepos(context.Background(), "testuser", 10)
+	repos, err := c.SearchRepos(context.Background(), "test", "stars", 10)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(out) != 2 {
-		t.Fatalf("got %d repos, want 2", len(out))
+	if len(repos) != 2 {
+		t.Fatalf("got %d repos, want 2", len(repos))
 	}
-	if out[0].FullName != "testuser/alpha" {
-		t.Errorf("first repo = %q", out[0].FullName)
+	if repos[0].FullName != "foo/bar" {
+		t.Errorf("first repo = %q, want %q", repos[0].FullName, "foo/bar")
+	}
+	if repos[0].StargazersCount != 100 {
+		t.Errorf("stars = %d, want 100", repos[0].StargazersCount)
 	}
 }
 
-func TestListReleases(t *testing.T) {
+func TestReleases(t *testing.T) {
 	releases := []wireRelease{
-		{TagName: "v1.0.0", Name: "First Release", Prerelease: false, CreatedAt: "2024-01-01T00:00:00+08:00"},
-		{TagName: "v0.9.0", Name: "Beta", Prerelease: true, CreatedAt: "2023-12-01T00:00:00+08:00"},
+		{ID: 1, TagName: "v1.0.0", Name: "First Release", Prerelease: false, CreatedAt: "2024-01-01T00:00:00+08:00"},
+		{ID: 2, TagName: "v0.9.0", Name: "Beta", Prerelease: true, CreatedAt: "2023-12-01T00:00:00+08:00"},
 	}
 	calls := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -260,7 +198,7 @@ func TestListReleases(t *testing.T) {
 	defer srv.Close()
 
 	c := newTestClient(srv.URL)
-	out, err := c.ListReleases(context.Background(), "owner", "repo", 10)
+	out, err := c.Releases(context.Background(), "owner", "repo", 10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -270,11 +208,76 @@ func TestListReleases(t *testing.T) {
 	if out[0].TagName != "v1.0.0" {
 		t.Errorf("tag = %q", out[0].TagName)
 	}
-	wantURL := "https://gitee.com/owner/repo/releases/tag/v1.0.0"
-	if out[0].URL != wantURL {
-		t.Errorf("url = %q, want %q", out[0].URL, wantURL)
-	}
-	if out[1].Prerelease != true {
+	if !out[1].Prerelease {
 		t.Errorf("prerelease = %v, want true", out[1].Prerelease)
+	}
+}
+
+func TestUserRepos(t *testing.T) {
+	repos := []wireRepo{
+		{ID: 1, FullName: "testuser/alpha", StargazersCount: 10, HTMLURL: "https://gitee.com/testuser/alpha"},
+		{ID: 2, FullName: "testuser/beta", StargazersCount: 5, HTMLURL: "https://gitee.com/testuser/beta"},
+	}
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		w.Header().Set("Content-Type", "application/json")
+		if calls > 1 {
+			_ = json.NewEncoder(w).Encode([]wireRepo{})
+			return
+		}
+		_ = json.NewEncoder(w).Encode(repos)
+	}))
+	defer srv.Close()
+
+	c := newTestClient(srv.URL)
+	out, err := c.UserRepos(context.Background(), "testuser", "", "", "", 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(out) != 2 {
+		t.Fatalf("got %d repos, want 2", len(out))
+	}
+	if out[0].FullName != "testuser/alpha" {
+		t.Errorf("first repo = %q", out[0].FullName)
+	}
+}
+
+func TestAddToken(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Token = "mytoken"
+	c := NewClient(cfg)
+
+	got := c.addToken("https://gitee.com/api/v5/users/foo")
+	want := "https://gitee.com/api/v5/users/foo?access_token=mytoken"
+	if got != want {
+		t.Errorf("addToken = %q, want %q", got, want)
+	}
+
+	got2 := c.addToken("https://gitee.com/api/v5/users/foo?page=1")
+	want2 := "https://gitee.com/api/v5/users/foo?page=1&access_token=mytoken"
+	if got2 != want2 {
+		t.Errorf("addToken with existing param = %q, want %q", got2, want2)
+	}
+}
+
+func TestWireLicenseUnmarshal(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{`"MIT"`, "MIT"},
+		{`{"spdx_id":"Apache-2.0","key":"apache-2.0","name":"Apache License 2.0"}`, "Apache-2.0"},
+		{`null`, ""},
+	}
+	for _, tc := range tests {
+		var l wireLicense
+		if err := json.Unmarshal([]byte(tc.input), &l); err != nil {
+			t.Errorf("unmarshal %q: %v", tc.input, err)
+			continue
+		}
+		if l.SPDXID != tc.want {
+			t.Errorf("unmarshal %q: got %q, want %q", tc.input, l.SPDXID, tc.want)
+		}
 	}
 }
