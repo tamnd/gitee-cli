@@ -10,35 +10,35 @@ import (
 
 // Repo is the canonical output record for any repository surface.
 type Repo struct {
-	Rank        int    `json:"rank"`
-	FullName    string `json:"full_name"`
-	Description string `json:"description"`
-	Language    string `json:"language"`
-	Stars       int    `json:"stars"`
-	Forks       int    `json:"forks"`
-	UpdatedAt   string `json:"updated_at"`
-	URL         string `json:"url"`
+	Rank        int    `json:"rank"                  table:"rank"`
+	FullName    string `json:"full_name"  kit:"id"   table:"full_name"`
+	Description string `json:"description"           table:"description"`
+	Language    string `json:"language"              table:"language"`
+	Stars       int    `json:"stars"                 table:"stars"`
+	Forks       int    `json:"forks"                 table:"forks"`
+	UpdatedAt   string `json:"updated_at"            table:"updated_at"`
+	URL         string `json:"url"                   table:"url,url"`
 }
 
 // User is the output record for a Gitee user profile.
 type User struct {
-	Login     string `json:"login"`
-	Name      string `json:"name"`
-	Followers int    `json:"followers"`
-	Following int    `json:"following"`
-	Repos     int    `json:"repos"`
-	Blog      string `json:"blog"`
-	URL       string `json:"url"`
+	Login     string `json:"login"    kit:"id"  table:"login"`
+	Name      string `json:"name"               table:"name"`
+	Followers int    `json:"followers"          table:"followers"`
+	Following int    `json:"following"          table:"following"`
+	Repos     int    `json:"repos"              table:"repos"`
+	Blog      string `json:"blog"               table:"blog"`
+	URL       string `json:"url"                table:"url,url"`
 }
 
 // Release is the output record for a repository release.
 type Release struct {
-	Rank       int    `json:"rank"`
-	TagName    string `json:"tag_name"`
-	Name       string `json:"name"`
-	Prerelease bool   `json:"prerelease"`
-	CreatedAt  string `json:"created_at"`
-	URL        string `json:"url"`
+	Rank       int    `json:"rank"                 table:"rank"`
+	TagName    string `json:"tag_name"  kit:"id"   table:"tag_name"`
+	Name       string `json:"name"                 table:"name"`
+	Prerelease bool   `json:"prerelease"           table:"prerelease"`
+	CreatedAt  string `json:"created_at"           table:"created_at"`
+	URL        string `json:"url"                  table:"url,url"`
 }
 
 // ─── Wire types (internal) ────────────────────────────────────────────────────
